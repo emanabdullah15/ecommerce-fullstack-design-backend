@@ -24,7 +24,7 @@ mongoose.connect(mongoURI, {
 // Serve images from frontend public folder
 app.use(
   "/images",
-  express.static(path.join(__dirname, "frontend/build"))
+  express.static(path.join(__dirname, "..","frontend", "public", "images", folder))
 );
 
 // Routes
