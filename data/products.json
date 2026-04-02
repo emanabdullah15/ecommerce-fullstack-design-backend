@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Red T-Shirt",
+    "price": 19.99,
+    "image": "https://example.com/images/red-tshirt.jpg",
+    "description": "Comfortable red t-shirt",
+    "category": "Clothing",
+    "stock": 50
+  },
+  {
+    "name": "Blue Jeans",
+    "price": 39.99,
+    "image": "https://example.com/images/blue-jeans.jpg",
+    "description": "Stylish blue jeans",
+    "category": "Clothing",
+    "stock": 30
+  }
+]
