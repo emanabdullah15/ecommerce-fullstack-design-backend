@@ -18,7 +18,7 @@ const storage = new CloudinaryStorage({
   params: async (req, file) => {
     const folder = categoryFolder[req.body.category] || "others";
     return {
-      folder: `products/${folder}`, // e.g., products/tech
+      folder: `products/${folder}`,
       allowed_formats: ["jpg", "png", "jpeg"],
     };
   },
@@ -28,13 +28,46 @@ const upload = multer({ storage });
 
 // ================= ROUTES =================
 
-// GET ALL PRODUCTS
+// GET ALL PRODUCTS WITH FILTERS
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
+    const { brand, features, condition, category, search } = req.query;
+
+    const query = {};
+
+    // Brand filter
+    if (brand) {
+      const brands = brand.split(",");
+      query.brand = { $in: brands };
+    }
+
+    // Features filter
+    if (features) {
+      const featArr = features.split(",");
+      query.features = { $all: featArr }; // all selected features must be in product
+    }
+
+    // Condition filter
+    if (condition && condition !== "Any") {
+      query.condition = condition;
+    }
+
+    // Category filter
+    if (category && category !== "All category") {
+      query.category = category;
+    }
+
+    // Search filter
+    if (search && search.trim() !== "") {
+      const regex = new RegExp(search.trim(), "i"); // case-insensitive search
+      query.name = regex;
+    }
+
+    const products = await Product.find(query);
+
     res.json(products);
   } catch (err) {
-    console.log(err);
+    console.log("Error fetching products:", err);
     res.status(500).json(err);
   }
 });
@@ -61,7 +94,7 @@ router.post("/", upload.single("img"), async (req, res) => {
       price,
       discount,
       description,
-      img: req.file ? req.file.path : "", // Cloudinary URL
+      img: req.file ? req.file.path : "",
     });
 
     await product.save();
@@ -79,7 +112,7 @@ router.put("/:id", upload.single("img"), async (req, res) => {
 
     const updateData = { name, category, price, discount, description };
 
-    if (req.file) updateData.img = req.file.path; // Cloudinary URL
+    if (req.file) updateData.img = req.file.path;
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json(updated);
