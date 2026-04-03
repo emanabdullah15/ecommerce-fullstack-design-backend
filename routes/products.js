@@ -1,32 +1,26 @@
 const express = require("express");
 const router = express.Router();
 const Product = require("../models/Product");
-
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-// Map categories to folders
+// Map categories to Cloudinary subfolders
 const categoryFolder = {
   "consumer-electronics": "tech",
   "home-outdoor": "interior",
   "recommended": "cloth",
 };
 
-// Multer storage config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+// Multer + Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
     const folder = categoryFolder[req.body.category] || "others";
-
-    // Save files into frontend public/images folder
-    const dir = path.join(__dirname, "..", "..","frontend", "public", "images", folder);
-
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    return {
+      folder: `products/${folder}`, // e.g., products/tech
+      allowed_formats: ["jpg", "png", "jpeg"],
+    };
   },
 });
 
@@ -61,23 +55,17 @@ router.post("/", upload.single("img"), async (req, res) => {
   try {
     const { name, category, price, discount, description } = req.body;
 
-    let imgPath = "";
-    if (req.file) {
-      const folder = categoryFolder[category] || "others";
-      imgPath = `/images/${folder}/${req.file.filename}`;
-    }
-
     const product = new Product({
       name,
       category,
       price,
       discount,
       description,
-      img: imgPath,
+      img: req.file ? req.file.path : "", // Cloudinary URL
     });
 
     await product.save();
-    res.json(product);
+    res.status(201).json(product);
   } catch (err) {
     console.log(err);
     res.status(500).json(err);
@@ -89,12 +77,9 @@ router.put("/:id", upload.single("img"), async (req, res) => {
   try {
     const { name, category, price, discount, description } = req.body;
 
-    let updateData = { name, category, price, discount, description };
+    const updateData = { name, category, price, discount, description };
 
-    if (req.file) {
-      const folder = categoryFolder[category] || "others";
-      updateData.img = `/images/${folder}/${req.file.filename}`;
-    }
+    if (req.file) updateData.img = req.file.path; // Cloudinary URL
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
     res.json(updated);
